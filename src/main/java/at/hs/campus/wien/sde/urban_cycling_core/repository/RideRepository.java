@@ -16,4 +16,8 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
 
   List<Ride> findByUserUserId(UUID userId);
 
+  @Query("SELECT r FROM Ride r WHERE r.user.userId = :userId AND r.completed = true")
+  List<Ride> findCompletedRidesByUser(@Param("userId") UUID userId);
+
+
 }

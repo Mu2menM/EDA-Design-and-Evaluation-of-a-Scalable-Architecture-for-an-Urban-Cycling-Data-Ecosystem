@@ -83,7 +83,7 @@ Content-Type: application/json
 X-API-Key: {{apiKey}}
 
 {
-  "rideId": "e0dc8b7b-e38f-4fce-9b4e-d06c713dbc7a"
+  "rideId": "193cb59a-1b09-41f7-888d-31c32d8a9d52"
 }
 
 ### Get ride details (should show distance and avg speed)
@@ -193,5 +193,9 @@ X-API-Key: {{apiKey}}
   ]
 }
 
+
+### CC-02: User Analytics
+GET http://localhost:8081/api/v1/analytics/user/{{userId}}
+X-API-Key: {{apiKey}}
 
 

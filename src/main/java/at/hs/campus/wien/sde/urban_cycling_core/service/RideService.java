@@ -58,8 +58,7 @@ public class RideService {
 
   public List<RideSummary> getRidesByUser(UUID userId) {
     List<Ride> rides = rideRepository.findByUserUserId(userId);
-    System.out.println("Ridesssssssss " + rides);
-    log.info("Ridesssssssss {}", rides);
+
     return rides.stream()
         .map(ride -> RideSummary.builder()
             .rideId(ride.getRideId())
