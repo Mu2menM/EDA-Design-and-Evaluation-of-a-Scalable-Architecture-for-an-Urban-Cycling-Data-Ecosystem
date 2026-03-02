@@ -1,0 +1,166 @@
+@apiKey = thesis-secret-key
+
+### Create a user
+POST http://localhost:8081/api/users
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "username": "alice6"
+}
+
+> {%client.global.set("userId", response.body.userId); %}
+
+### Send telemetry point 1 (should be queued)
+POST http://localhost:8081/api/v1/telemetry
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "userId": "{{userId}}",
+  "timestamp": "2026-02-26T08:00:00Z",
+  "latitude": 48.2082,
+  "longitude": 16.3738
+}
+
+> {% client.global.set("rideId", response.body.rideId); %}
+
+### Send telemetry point 2 (append to same ride ---> Madrid)
+POST http://localhost:8081/api/v1/telemetry
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "userId": "{{userId}}",
+  "timestamp": "2026-02-26T10:05:00Z",
+  "latitude": 40.415771554113846,
+  "longitude": -3.7129903456098163
+}
+
+### Send telemetry point 3 (append again --> Nestroyplatz)
+POST http://localhost:8081/api/v1/telemetry
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "userId": "{{userId}}",
+  "timestamp": "2026-02-26T12:10:00Z",
+  "latitude": 48.2150,
+  "longitude": 16.3850
+}
+
+### Send telemetry point 4 (append again Barcelona)
+POST http://localhost:8081/api/v1/telemetry
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "userId": "{{userId}}",
+  "timestamp": "2026-02-26T15:10:00Z",
+  "latitude": 41.387349094698536,
+  "longitude": 2.1655504537723713
+}
+
+### Send telemetry point 5 (Graz)
+POST http://localhost:8081/api/v1/telemetry
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "userId": "{{userId}}",
+  "timestamp": "2026-02-26T15:10:00Z",
+  "latitude" : 47.068496761201544,
+  "longitude": 15.441417429075177
+}
+
+### Get ride details (should show distance and avg speed which will be calcualted on the fly)
+GET http://localhost:8081/api/v1/rides/4bd14e56-497c-4b22-8b98-cc9828f0d282
+X-API-Key: {{apiKey}}
+
+### End ride
+POST http://localhost:8081/api/v1/rides/end
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "rideId": "e0dc8b7b-e38f-4fce-9b4e-d06c713dbc7a"
+}
+
+### Get ride details (should show distance and avg speed)
+GET http://localhost:8081/api/v1/rides/{{rideId}}
+Accept: application/json
+X-API-Key: {{apiKey}}
+
+
+### ============================================
+### METRICS MONITORING - URBAN CYCLING EDA
+### ============================================
+
+### ----------------------------------------------------------------------
+### 1. telemetry.received
+### ----------------------------------------------------------------------
+# TECHNICAL: Counter of total HTTP requests received by the API endpoint.
+#            Increments immediately when a cyclist sends GPS data.
+#
+# USE CASE: Shows total incoming data volume regardless of processing success.
+GET http://localhost:8081/actuator/metrics/telemetry.received
+X-API-Key: {{apiKey}}
+
+### ----------------------------------------------------------------------
+### 2. telemetry.kafka.publish.time
+### ----------------------------------------------------------------------
+# TECHNICAL: Timer measuring how long it takes to publish a message to Kafka.
+#            Includes serialization and network round-trip to broker.
+#
+# USE CASE: Detects Kafka connection issues or broker bottlenecks.
+GET http://localhost:8081/actuator/metrics/telemetry.kafka.publish.time
+X-API-Key: {{apiKey}}
+
+### ----------------------------------------------------------------------
+### 3. telemetry.persisted
+### ----------------------------------------------------------------------
+# TECHNICAL: Counter of telemetry points successfully written to PostgreSQL.
+#            Only increments after database commit succeeds.
+#
+# USE CASE: Should eventually match telemetry.received. If lower, some
+#           data was lost or failed to process.
+GET http://localhost:8081/actuator/metrics/telemetry.persisted
+X-API-Key: {{apiKey}}
+
+### ----------------------------------------------------------------------
+### 4. telemetry.persistence.time
+### ----------------------------------------------------------------------
+# TECHNICAL: Timer measuring database write time (finding/creating ride,
+#            saving waypoint, transaction commit).
+#
+# USE CASE: Identifies slow database queries or connection pool issues.
+GET http://localhost:8081/actuator/metrics/telemetry.persistence.time
+X-API-Key: {{apiKey}}
+
+### ----------------------------------------------------------------------
+### 5. telemetry.end.to.end.latency (SC-05)
+### ----------------------------------------------------------------------
+# TECHNICAL: Complete journey time from HTTP request reception to
+#            database persistence. Includes Kafka travel + processing.
+#            Current value: 0.181 seconds (181 milliseconds)
+#
+# NON-TECHNICAL: The total time from when a cyclist sends their location
+#                until it's safely saved. Like ordering food online and
+#                getting confirmation that it's delivered.
+#
+# STATISTICS EXPLAINED:
+#   - COUNT: How many times we've measured (number of processed points)
+#   - TOTAL_TIME: Sum of all latencies (here 0.181s for one point)
+#   - MAX: Slowest measurement so far (0.181s)
+#
+# THESIS REQUIREMENT (SC-04): Must stay under 2 seconds (2000ms).
+#                              Current: 0.181s ✓ PASSED
+#
+# USE CASE: Primary metric for comparing EDA vs Monolith performance.
+#           Shows the cost/benefit of asynchronous processing.
+GET http://localhost:8081/actuator/metrics/telemetry.end.to.end.latency
+X-API-Key: {{apiKey}}
+
+
+
+

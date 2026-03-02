@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: urban-cycling-eda
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cyclingdb
+    username: user
+    password: password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: telemetryRequest:at.hs.campus.wien.sde.urban_cycling_core.dto.TelemetryRequest
+    consumer:
+      group-id: cycling-consumer-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.type.mapping: telemetryRequest:at.hs.campus.wien.sde.urban_cycling_core.dto.TelemetryRequest
+        spring.json.trusted.packages: "*"
+      auto-offset-reset: earliest
+
+# Kafka topic name
+kafka:
+  topic: cycling-telemetry
+
+# Metrics and logging
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        telemetry.end.to.end.latency: true
+        telemetry.persistence.time: true
+        telemetry.kafka.publish.time: true
+      slo:
+        telemetry.end.to.end.latency: 10ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s
+        telemetry.persistence.time: 10ms, 25ms, 50ms, 100ms, 200ms
+        telemetry.kafka.publish.time: 5ms, 10ms, 25ms, 50ms, 100ms
+      percentiles:
+        telemetry.end.to.end.latency: 0.5, 0.95, 0.99
+        telemetry.persistence.time: 0.5, 0.95, 0.99
+        telemetry.kafka.publish.time: 0.5, 0.95, 0.99
+
+logging:
+  level:
+    at.hs.campus.wien.sde: DEBUG
+    org.springframework.kafka: INFO
+  pattern:
+    console: "%d{ISO8601} %-5level [%thread] %logger{36} - %msg%n"
