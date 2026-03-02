@@ -6,7 +6,7 @@ Content-Type: application/json
 X-API-Key: {{apiKey}}
 
 {
-  "username": "alice6"
+  "username": "alice7"
 }
 
 > {%client.global.set("userId", response.body.userId); %}
@@ -142,7 +142,7 @@ X-API-Key: {{apiKey}}
 ### ----------------------------------------------------------------------
 # TECHNICAL: Complete journey time from HTTP request reception to
 #            database persistence. Includes Kafka travel + processing.
-#            Current value: 0.181 seconds (181 milliseconds)
+#
 #
 # NON-TECHNICAL: The total time from when a cyclist sends their location
 #                until it's safely saved. Like ordering food online and
@@ -161,6 +161,37 @@ X-API-Key: {{apiKey}}
 GET http://localhost:8081/actuator/metrics/telemetry.end.to.end.latency
 X-API-Key: {{apiKey}}
 
+
+
+#CC-01
+
+### CC-01: Batch Telemetry Ingestion
+POST http://localhost:8081/api/v1/telemetry/batch
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "points": [
+    {
+      "userId": "{{userId}}",
+      "timestamp": "2026-03-02T08:00:00Z",
+      "latitude": 48.2082,
+      "longitude": 16.3738
+    },
+    {
+      "userId": "{{userId}}",
+      "timestamp": "2026-03-02T08:05:00Z",
+      "latitude": 48.2100,
+      "longitude": 16.3800
+    },
+    {
+      "userId": "{{userId}}",
+      "timestamp": "2026-03-02T08:10:00Z",
+      "latitude": 48.2150,
+      "longitude": 16.3850
+    }
+  ]
+}
 
 
 

@@ -31,7 +31,7 @@ def test_consistency():
         headers={"X-API-Key": API_KEY}
     )
     assert telemetry_resp.status_code == 202, f"Telemetry not accepted: {telemetry_resp.text}"
-    print("📤 Telemetry accepted, waiting for consistency...")
+    print("Telemetry accepted, waiting for consistency...")
 
     # 3. Poll the user's rides until a ride appears (or timeout)
     timeout = 3  # seconds
@@ -58,7 +58,7 @@ def test_consistency():
         elapsed += poll_interval
 
     if ride_id is None:
-        print("❌ No ride appeared within timeout")
+        print("No ride appeared within timeout")
         # Optional: check directly if any ride exists for this user in DB (via Adminer)
         sys.exit(1)
 

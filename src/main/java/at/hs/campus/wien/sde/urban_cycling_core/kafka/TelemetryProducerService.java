@@ -1,10 +1,10 @@
 package at.hs.campus.wien.sde.urban_cycling_core.kafka;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -13,8 +13,6 @@ import org.springframework.kafka.support.SendResult;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import at.hs.campus.wien.sde.urban_cycling_core.dto.TelemetryRequest;
 import io.micrometer.core.instrument.Counter;
@@ -31,7 +29,6 @@ public class TelemetryProducerService {
 
   private final KafkaTemplate<String, TelemetryRequest> kafkaTemplate;
   private final MeterRegistry meterRegistry;
-  private final ObjectMapper objectMapper;
 
   @Value("${kafka.topic:cycling-telemetry}")
   private String topic;
@@ -88,5 +85,38 @@ public class TelemetryProducerService {
       log.error("Failed to build/publish telemetry request", e);
       MDC.clear();
     }
+  }
+
+  public List<UUID> publishBatch(List<TelemetryRequest> requests) {
+    List<UUID> rideIds = new ArrayList<>();
+
+    for (TelemetryRequest request : requests) {
+      telemetryReceivedCounter.increment();
+      MDC.put("userId", request.getUserId().toString());
+
+      Timer.Sample sample = Timer.start(meterRegistry);
+
+      try {
+        long receptionTime = System.currentTimeMillis();
+
+        Message<TelemetryRequest> message = MessageBuilder
+            .withPayload(request)
+            .setHeader(KafkaHeaders.TOPIC, topic)
+            .setHeader(KafkaHeaders.KEY, UUID.randomUUID().toString())
+            .setHeader("reception-time", receptionTime)
+            .setHeader("batch-size", String.valueOf(requests.size()))
+            .build();
+
+        kafkaTemplate.send(message);
+        sample.stop(kafkaPublishTimer);
+
+      } catch (Exception e) {
+        log.error("Failed to publish batch telemetry", e);
+      } finally {
+        MDC.clear();
+      }
+    }
+
+    return rideIds; // Note: rideIds not known until consumer processes them
   }
 }
